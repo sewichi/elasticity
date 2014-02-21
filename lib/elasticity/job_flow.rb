@@ -109,6 +109,15 @@ module Elasticity
       end
     end
 
+    def add_steps(jobflow_steps)
+      if is_jobflow_running?
+        #ignoring requires_installation as it pertains to pig/hive that we do not support
+        emr.add_jobflow_steps(@jobflow_id, {step: jobflow_steps.map { |s| s.to_aws_step(self) }} )
+      else
+        @jobflow_steps += jobflow_steps
+      end
+    end
+
     def run
       if is_jobflow_running?
         raise JobFlowRunningError, 'Cannot run a job flow multiple times.  To do more with this job flow, please use #add_step.'
