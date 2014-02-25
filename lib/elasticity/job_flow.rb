@@ -112,7 +112,7 @@ module Elasticity
     def add_steps(jobflow_steps)
       if is_jobflow_running?
         #ignoring requires_installation as it pertains to pig/hive that we do not support
-        emr.add_jobflow_steps(@jobflow_id, {step: jobflow_steps.map { |s| s.to_aws_step(self) }} )
+        emr.add_jobflow_steps(@jobflow_id, {steps: jobflow_steps.map { |s| s.to_aws_step(self) }} )
       else
         @jobflow_steps += jobflow_steps
       end
