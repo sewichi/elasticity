@@ -177,7 +177,10 @@ module Elasticity
       preamble[:instances][:placement] = {:availability_zone => @placement} if @placement
 
       preamble[:placement] = {:availability_zone => @placement} if @placement
-      preamble[:instances].merge!(:ec2_subnet_id => @ec2_subnet_id) if @ec2_subnet_id
+      if @ec2_subnet_id
+        preamble[:instances].merge!(:ec2_subnet_id => @ec2_subnet_id)
+        preamble[:instances].delete(:placement)
+      end
 
       preamble
     end
