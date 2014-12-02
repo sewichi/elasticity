@@ -13,7 +13,8 @@ Gem::Specification.new do |s|
 
   s.add_dependency('rest-client', '~> 1.7.2')
   s.add_dependency('nokogiri', '~> 1.5.9')
-  s.add_dependency('fog', '~> 1.22.0')
+  s.add_dependency('fog', '~> 1.25.0')
+  s.add_dependency('fog-core', '~> 1.25.0')
 
   s.add_development_dependency('rake', '~> 0.9')
   s.add_development_dependency('rspec', '~> 2.12.0')
