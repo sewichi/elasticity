@@ -3,7 +3,7 @@ $:.push File.expand_path('../lib', __FILE__)
 require 'elasticity/version'
 
 Gem::Specification.new do |s|
-  s.name        = 'elasticity'
+  s.name        = 'placed-elasticity'
   s.version     = Elasticity::VERSION
   s.platform    = Gem::Platform::RUBY
   s.authors     = ['Robert Slifka']
