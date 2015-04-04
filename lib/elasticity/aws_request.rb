@@ -76,9 +76,7 @@ module Elasticity
     # Escape a string according to Amazon's rules.
     # See: http://docs.amazonwebservices.com/AmazonSimpleDB/2007-11-07/DeveloperGuide/index.html?REST_RESTAuth.html
     def self.aws_escape(param)
-      param.to_s.gsub(/([^a-zA-Z0-9._~-]+)/n) do
-        '%' + $1.unpack('H2' * $1.size).join('%').upcase
-      end
+      ERB::Util.url_encode(param)
     end
 
     # Since we use the same structure as AWS, we can generate AWS param names
