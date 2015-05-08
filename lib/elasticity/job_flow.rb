@@ -19,7 +19,7 @@ module Elasticity
     attr_accessor :ec2_subnet_id
     attr_accessor :placement
     attr_accessor :visible_to_all_users
-
+    attr_accessor :jobflow_id
     attr_reader :access_key
     attr_reader :secret_key
 
