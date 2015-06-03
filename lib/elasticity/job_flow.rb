@@ -20,20 +20,14 @@ module Elasticity
     attr_accessor :placement
     attr_accessor :visible_to_all_users
     attr_accessor :jobflow_id
+    attr_accessor :defaults
     attr_reader :access_key
     attr_reader :secret_key
 
     def initialize(access=nil, secret=nil)
-      @action_on_failure = 'TERMINATE_JOB_FLOW'
-      @hadoop_version = '1.0.3'
-      @name = 'Elasticity Job Flow'
-      @ami_version = 'latest'
-      @keep_job_flow_alive_when_no_steps = false
-      @placement = nil
 
       @access_key = access
       @secret_key = secret
-      @visible_to_all_users = false
 
       @bootstrap_actions = []
       @jobflow_steps = []
@@ -159,20 +153,24 @@ module Elasticity
     end
 
     def jobflow_preamble
-      preamble = {
-        :name => @name,
-        :ami_version => @ami_version,
-        :visible_to_all_users => @visible_to_all_users,
-        :instances => {
-          :keep_job_flow_alive_when_no_steps => @keep_job_flow_alive_when_no_steps,
-          :hadoop_version => @hadoop_version,
-          :instance_groups => jobflow_instance_groups
-        }
-      }
-      preamble[:placement] = {:availability_zone => @placement} if(@placement)
-      preamble.merge!(:ec2_subnet_id => @ec2_subnet_id) if @ec2_subnet_id
+      preamble = @defaults
+
+      preamble[:name] = @name unless @name.nil?
+      preamble[:ami_version] = @ami_version unless @ami_version.nil?
+      preamble[:visible_to_all_users] = @visible_to_all_users unless @visible_to_all_users.nil?
+
+      preamble[:instances] ||= {}
+      preamble[:instances][:keep_job_flow_alive_when_no_steps] = @keep_job_flow_alive_when_no_steps unless @keep_job_flow_alive_when_no_steps.nil?
+      preamble[:instances][:hadoop_version] = @hadoop_version unless @hadoop_version.nil?
+      preamble[:instances][:instance_groups] = jobflow_instance_groups
+
+      @ec2_key_name ||= preamble[:ec2_key_name]
       preamble[:instances].merge!(:ec2_key_name => @ec2_key_name) if @ec2_key_name
-      preamble[:instances][:placement] = {:availability_zone => @placement} if(@placement)
+      preamble[:instances][:placement] = {:availability_zone => @placement} if @placement
+
+      preamble[:placement] = {:availability_zone => @placement} if @placement
+      preamble.merge!(:ec2_subnet_id => @ec2_subnet_id) if @ec2_subnet_id
+
       preamble
     end
 
