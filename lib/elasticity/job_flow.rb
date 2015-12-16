@@ -48,7 +48,6 @@ module Elasticity
       JobFlow.new(access, secret).tap do |j|
         j.instance_variable_set(:@region, region)
         j.instance_variable_set(:@jobflow_id, jobflow_id)
-        j.instance_variable_set(:@installed_steps, j.status.installed_steps)
       end
     end
 
