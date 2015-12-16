@@ -14,6 +14,7 @@ module Elasticity
     #
     # Raises ArgumentError if the specified jobflow does not exist.
     def describe_jobflow(jobflow_id)
+      warn "DescribeJobFlows is deprecated. caller = #{caller.join("\n")}"
       aws_result = @aws_request.submit({
         :operation => 'DescribeJobFlows',
         :job_flow_ids => [jobflow_id]
@@ -31,6 +32,7 @@ module Elasticity
     #
     #   describe_jobflows(:CreatedBefore => "2011-10-04")
     def describe_jobflows(params = {})
+      warn "DescribeJobFlows is deprecated. caller = #{caller.join("\n")}"
       aws_result = @aws_request.submit(
         params.merge({:operation => 'DescribeJobFlows'})
       )
