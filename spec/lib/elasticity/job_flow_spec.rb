@@ -19,6 +19,8 @@ describe Elasticity::JobFlow do
   its(:keep_job_flow_alive_when_no_steps) { should == false }
   its(:placement) { should == 'us-east-1a' }
   its(:visible_to_all_users) { should == false }
+  its(:additional_master_security_groups) { should == nil }
+  its(:additional_slave_security_groups) { should == nil }
 
   describe '.initialize' do
     it 'should set the access and secret keys to nil by default' do
@@ -397,6 +399,19 @@ describe Elasticity::JobFlow do
       end
     end
 
+    context 'when additional master security groups is provided' do
+      it 'should include it in the preamble' do
+        subject.additional_master_security_groups = ['group1', 'group2']
+        subject.send(:jobflow_preamble)[:instances].should be_a_hash_including({:additional_master_security_groups => ['group1', 'group2']})
+      end
+    end
+
+    context 'when additional slave security groups is provided' do
+      it 'should include it in the preamble' do
+        subject.additional_slave_security_groups = ['group1', 'group2']
+        subject.send(:jobflow_preamble)[:instances].should be_a_hash_including({:additional_slave_security_groups => ['group1', 'group2']})
+      end
+    end
   end
 
   describe '#run' do
