@@ -107,11 +107,12 @@ describe Elasticity::InstanceGroup do
         {
           :ebs_size_in_gb => 10,
           #:ebs_optimized => false, # missing
-          :ebs_volume_type => "gp2"
+          :ebs_volume_type => "gp2",
+          :ebs_number_of_volumes => 1
         }
         expect {
           subject.ebs=ebs_opts
-        }.to raise_error(ArgumentError, 'Missing EBS parameters. Passed: {:ebs_size_in_gb=>10, :ebs_volume_type=>"gp2"}')
+        }.to raise_error(ArgumentError, 'Missing EBS parameters. Passed: {:ebs_size_in_gb=>10, :ebs_volume_type=>"gp2", :ebs_number_of_volumes=>1}')
       end
     end
 
@@ -122,7 +123,8 @@ describe Elasticity::InstanceGroup do
           {
             :ebs_size_in_gb => 0,
             :ebs_optimized => false,
-            :ebs_volume_type => "gp2"
+            :ebs_volume_type => "gp2",
+            :ebs_number_of_volumes => 1
           }
           subject.ebs=ebs_opts
         }.to raise_error(ArgumentError, 'EBS Size must be at least 0 to add an EBS volume (0 requested)')
@@ -136,7 +138,8 @@ describe Elasticity::InstanceGroup do
           {
             :ebs_size_in_gb => 1024,
             :ebs_optimized => false,
-            :ebs_volume_type => "gp2"
+            :ebs_volume_type => "gp2",
+            :ebs_number_of_volumes => 1
           }
           subject.ebs=ebs_opts
         }.to raise_error(ArgumentError, 'EBS Size must be less than 1024 to add an EBS volume (1024 requested)')
@@ -150,7 +153,8 @@ describe Elasticity::InstanceGroup do
           {
             :ebs_size_in_gb => 9,
             :ebs_optimized => true,
-            :ebs_volume_type => "gp2"
+            :ebs_volume_type => "gp2",
+            :ebs_number_of_volumes => 1
           }
           subject.ebs=ebs_opts
         }.to raise_error(ArgumentError, 'EBS Size must be at least 10 if ebs_optimized (9 requested)')
@@ -162,7 +166,8 @@ describe Elasticity::InstanceGroup do
           {
             :ebs_size_in_gb => 1,
             :ebs_optimized => true,
-            :ebs_volume_type => "gp2"
+            :ebs_volume_type => "gp2",
+            :ebs_number_of_volumes => 1
           }
           subject.ebs=ebs_opts
         }.to raise_error(ArgumentError, 'EBS Size must be at least 10 if ebs_optimized (1 requested)')
@@ -176,7 +181,8 @@ describe Elasticity::InstanceGroup do
           :ebs_size_in_gb => 10,
           :ebs_optimized => true,
           :ebs_iops => 20,
-          :ebs_volume_type => "io1"
+          :ebs_volume_type => "io1",
+          :ebs_number_of_volumes => 2
         }
         subject.ebs=ebs_opts
 
@@ -184,7 +190,7 @@ describe Elasticity::InstanceGroup do
           {
             :ebs_block_device_configs => [
                   {
-                    :volumes_per_instance => 1,
+                    :volumes_per_instance => 2,
                     :volume_specification => {
                       :volume_type => "io1",
                       :iops => 20,
@@ -202,7 +208,8 @@ describe Elasticity::InstanceGroup do
           :ebs_size_in_gb => 1,
           :ebs_optimized => false,
           :ebs_iops => 20,
-          :ebs_volume_type => "io1"
+          :ebs_volume_type => "io1",
+          :ebs_number_of_volumes => 1
         }
         subject.ebs=ebs_opts
       end
@@ -212,7 +219,8 @@ describe Elasticity::InstanceGroup do
         {
           :ebs_size_in_gb => 1023,
           :ebs_optimized => false,
-          :ebs_volume_type => "gp2"
+          :ebs_volume_type => "gp2",
+          :ebs_number_of_volumes => 1
         }
         subject.ebs=ebs_opts
 
@@ -240,7 +248,8 @@ describe Elasticity::InstanceGroup do
             :ebs_size_in_gb => 20,
             :ebs_optimized => true,
             :ebs_iops => 0,
-            :ebs_volume_type => "bad_type"
+            :ebs_volume_type => "bad_type",
+            :ebs_number_of_volumes => 1
           }
           subject.ebs=ebs_opts
         }.to raise_error(ArgumentError, 'EBS Volume Type is not a supported type (bad_type requested)')
@@ -255,7 +264,8 @@ describe Elasticity::InstanceGroup do
             :ebs_size_in_gb => 20,
             :ebs_optimized => true,
             :ebs_iops => 0,
-            :ebs_volume_type => "gp2"
+            :ebs_volume_type => "gp2",
+            :ebs_number_of_volumes => 1
           }
           subject.ebs=ebs_opts
         }.to raise_error(ArgumentError, 'Iops not supported with gp2 volume type')
@@ -267,7 +277,8 @@ describe Elasticity::InstanceGroup do
           {
             :ebs_size_in_gb => 20,
             :ebs_optimized => true,
-            :ebs_volume_type => "io1"
+            :ebs_volume_type => "io1",
+            :ebs_number_of_volumes => 1
           }
           subject.ebs=ebs_opts
         }.to raise_error(ArgumentError, 'io1 volume type requires iops to be set')

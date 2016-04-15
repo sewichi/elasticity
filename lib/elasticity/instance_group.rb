@@ -21,7 +21,7 @@ module Elasticity
     end
 
     def ebs=(ebs_opts = {})
-      if (ebs_opts[:ebs_size_in_gb].nil? || ebs_opts[:ebs_optimized].nil? || ebs_opts[:ebs_volume_type].nil?)
+      if (ebs_opts[:ebs_size_in_gb].nil? || ebs_opts[:ebs_optimized].nil? || ebs_opts[:ebs_volume_type].nil? || ebs_opts[:ebs_number_of_volumes].nil?)
         raise ArgumentError, "Missing EBS parameters. Passed: #{ebs_opts}"
       end
 
@@ -30,8 +30,14 @@ module Elasticity
         ebs_opts[:ebs_iops] = ebs_opts[:ebs_iops].to_i
       end
 
+      ebs_opts[:ebs_number_of_volumes] = ebs_opts[:ebs_number_of_volumes].to_i
+
       if ebs_opts[:ebs_size_in_gb] <= 0
         raise ArgumentError, "EBS Size must be at least 0 to add an EBS volume (#{ebs_opts[:ebs_size_in_gb]} requested)"
+      end
+
+      if ebs_opts[:ebs_number_of_volumes] < 1
+        raise ArgumentError, "Must have at least one EBS volume (#{ebs_opts[:ebs_number_of_volumes]} requested)"
       end
 
       if ebs_opts[:ebs_size_in_gb] >= 1024
@@ -66,7 +72,7 @@ module Elasticity
       @ebs = {
         :ebs_block_device_configs => [
               {
-                :volumes_per_instance => 1,
+                :volumes_per_instance => ebs_opts[:ebs_number_of_volumes],
                 :volume_specification => volume_specification
               }
             ],
