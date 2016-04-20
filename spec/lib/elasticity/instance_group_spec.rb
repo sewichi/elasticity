@@ -94,6 +94,199 @@ describe Elasticity::InstanceGroup do
 
   end
 
+  describe '#ebs' do
+    context 'when not set' do
+      it 'should be return nil' do
+          subject.ebs.should == nil
+      end
+    end
+
+    context 'when missing parameters' do
+      it 'it should error' do
+        ebs_opts =
+        {
+          :ebs_size_in_gb => 10,
+          #:ebs_optimized => false, # missing
+          :ebs_volume_type => "gp2",
+          :ebs_number_of_volumes => 1
+        }
+        expect {
+          subject.ebs=ebs_opts
+        }.to raise_error(ArgumentError, 'Missing EBS parameters. Passed: {:ebs_size_in_gb=>10, :ebs_volume_type=>"gp2", :ebs_number_of_volumes=>1}')
+      end
+    end
+
+    context 'when the size is <= 0' do
+      it 'should be an error' do
+        expect {
+          ebs_opts =
+          {
+            :ebs_size_in_gb => 0,
+            :ebs_optimized => false,
+            :ebs_volume_type => "gp2",
+            :ebs_number_of_volumes => 1
+          }
+          subject.ebs=ebs_opts
+        }.to raise_error(ArgumentError, 'EBS Size must be at least 0 to add an EBS volume (0 requested)')
+      end
+    end
+
+    context 'when the size is >= 1024' do
+      it 'should be an error' do
+        expect {
+          ebs_opts =
+          {
+            :ebs_size_in_gb => 1024,
+            :ebs_optimized => false,
+            :ebs_volume_type => "gp2",
+            :ebs_number_of_volumes => 1
+          }
+          subject.ebs=ebs_opts
+        }.to raise_error(ArgumentError, 'EBS Size must be less than 1024 to add an EBS volume (1024 requested)')
+      end
+    end
+
+    context 'when the size is <= 10 and ebs optimization is on' do
+      it 'should be an error' do
+        expect {
+          ebs_opts =
+          {
+            :ebs_size_in_gb => 9,
+            :ebs_optimized => true,
+            :ebs_volume_type => "gp2",
+            :ebs_number_of_volumes => 1
+          }
+          subject.ebs=ebs_opts
+        }.to raise_error(ArgumentError, 'EBS Size must be at least 10 if ebs_optimized (9 requested)')
+      end
+
+      it 'should be an error' do
+        expect {
+          ebs_opts =
+          {
+            :ebs_size_in_gb => 1,
+            :ebs_optimized => true,
+            :ebs_volume_type => "gp2",
+            :ebs_number_of_volumes => 1
+          }
+          subject.ebs=ebs_opts
+        }.to raise_error(ArgumentError, 'EBS Size must be at least 10 if ebs_optimized (1 requested)')
+      end
+    end
+
+    context 'when the size is OK and optimization match' do
+      it 'should set when true and valid and iops match type' do
+        ebs_opts =
+        {
+          :ebs_size_in_gb => 10,
+          :ebs_optimized => true,
+          :ebs_iops => 20,
+          :ebs_volume_type => "io1",
+          :ebs_number_of_volumes => 2
+        }
+        subject.ebs=ebs_opts
+
+        subject.ebs.should ==
+          {
+            :ebs_block_device_configs => [
+                  {
+                    :volumes_per_instance => 2,
+                    :volume_specification => {
+                      :volume_type => "io1",
+                      :iops => 20,
+                      :size_in_GB => 10
+                    }
+                  }
+              ],
+            :ebs_optimized => true
+        }
+      end
+
+      it 'should set when optimization enabled is false and size valid and iops match type' do
+        ebs_opts =
+        {
+          :ebs_size_in_gb => 1,
+          :ebs_optimized => false,
+          :ebs_iops => 20,
+          :ebs_volume_type => "io1",
+          :ebs_number_of_volumes => 1
+        }
+        subject.ebs=ebs_opts
+      end
+
+      it 'should set when size in limits and not using iops type - issue' do
+        ebs_opts =
+        {
+          :ebs_size_in_gb => 1023,
+          :ebs_optimized => false,
+          :ebs_volume_type => "gp2",
+          :ebs_number_of_volumes => 1
+        }
+        subject.ebs=ebs_opts
+
+        subject.ebs.should ==
+        {
+          :ebs_block_device_configs => [
+              {
+                :volumes_per_instance => 1,
+                :volume_specification => {
+                  :volume_type => "gp2",
+                  :size_in_GB => 1023
+                }
+              }
+            ],
+          :ebs_optimized => false
+        }
+      end
+    end
+
+    context 'when the type is bad' do
+      it 'should be an error' do
+        expect {
+          ebs_opts =
+          {
+            :ebs_size_in_gb => 20,
+            :ebs_optimized => true,
+            :ebs_iops => 0,
+            :ebs_volume_type => "bad_type",
+            :ebs_number_of_volumes => 1
+          }
+          subject.ebs=ebs_opts
+        }.to raise_error(ArgumentError, 'EBS Volume Type is not a supported type (bad_type requested)')
+      end
+    end
+
+    context 'when iops and type do not match' do
+      it 'should be an error for gp2 with iops' do
+        expect {
+          ebs_opts =
+          {
+            :ebs_size_in_gb => 20,
+            :ebs_optimized => true,
+            :ebs_iops => 0,
+            :ebs_volume_type => "gp2",
+            :ebs_number_of_volumes => 1
+          }
+          subject.ebs=ebs_opts
+        }.to raise_error(ArgumentError, 'Iops not supported with gp2 volume type')
+      end
+
+      it 'should be an error for io1 without iops' do
+        expect {
+          ebs_opts =
+          {
+            :ebs_size_in_gb => 20,
+            :ebs_optimized => true,
+            :ebs_volume_type => "io1",
+            :ebs_number_of_volumes => 1
+          }
+          subject.ebs=ebs_opts
+        }.to raise_error(ArgumentError, 'io1 volume type requires iops to be set')
+      end
+    end
+
+  end
+
   describe '#to_aws_instance_config' do
 
     context 'when an ON_DEMAND group' do
