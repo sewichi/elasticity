@@ -48,7 +48,7 @@ module Elasticity
         raise ArgumentError, "EBS Size must be at least 10 if ebs_optimized (#{ebs_opts[:ebs_size_in_gb]} requested)"
       end
 
-      if !['gp2','io1','standard'].include?(ebs_opts[:ebs_volume_type])
+      if !['gp2','io1','standard','st1','sc1'].include?(ebs_opts[:ebs_volume_type])
         raise ArgumentError, "EBS Volume Type is not a supported type (#{ebs_opts[:ebs_volume_type]} requested)"
       end
 

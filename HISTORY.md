@@ -1,3 +1,7 @@
+## 2.7.2
+
++ Add new volume types (Placed)
+
 ## 2.7.1
 
 + Add EBS support for EMR nodes (Placed)
