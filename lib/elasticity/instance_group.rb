@@ -8,6 +8,7 @@ module Elasticity
     attr_accessor :type
     attr_accessor :role
     attr_accessor :ebs
+    attr_accessor :bid_price
 
     attr_reader :bid_price
     attr_reader :market
