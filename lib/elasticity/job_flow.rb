@@ -157,7 +157,7 @@ module Elasticity
       preamble[:name] = @name unless @name.nil?
 
       major_version = @ami_version.split('.').first.to_i if @ami_version
-      if major_version && major_version > 3
+      if major_version && major_version >= 4
         preamble[:release_label] = "emr-#@ami_version"
         preamble.delete(:ami_version)
       else
