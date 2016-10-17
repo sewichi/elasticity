@@ -5,6 +5,8 @@ module Elasticity
 
   class AwsRequest
 
+    SERVICE_NAME = 'elasticmapreduce'
+
     attr_reader :access_key
     attr_reader :secret_key
     attr_reader :host
@@ -16,15 +18,98 @@ module Elasticity
     def initialize(access=nil, secret=nil, options={})
       @access_key = get_access_key(access)
       @secret_key = get_secret_key(secret)
-      @host = "elasticmapreduce.#{{:region => 'us-east-1'}.merge(options)[:region]}.amazonaws.com"
+      @region = {:region => 'us-east-1'}.merge(options)[:region]
+      @host = "elasticmapreduce.#@region.amazonaws.com"
       @protocol = {:secure => true}.merge(options)[:secure] ? 'https' : 'http'
+      @timestamp = Time.now.utc
+    end
+
+    def headers
+      headers = {
+        'Authorization' => "AWS4-HMAC-SHA256 Credential=#{@access_key}/#{credential_scope}, SignedHeaders=content-type;host;user-agent;x-amz-content-sha256;x-amz-date;x-amz-target, Signature=#{aws_v4_signature}",
+        'Content-Type' => 'application/x-amz-json-1.1',
+        'Host' => host,
+        'User-Agent' => "elasticity/#{Elasticity::VERSION}",
+        'X-Amz-Content-SHA256' => Digest::SHA256.hexdigest(payload),
+        'X-Amz-Date' => @timestamp.strftime('%Y%m%dT%H%M%SZ'),
+        'X-Amz-Target' => "ElasticMapReduce.#{@operation}",
+      }
+      headers
+    end
+
+    def url
+      "https://#{host}"
+    end
+
+    def payload
+      ruby_params = AwsRequest.convert_ruby_to_aws_v4(@ruby_service_hash, true)
+      ruby_params.to_json
+    end
+
+    def host
+      "elasticmapreduce.#{@region}.amazonaws.com"
+    end
+
+    def credential_scope
+      "#{@timestamp.strftime('%Y%m%d')}/#{@region}/#{SERVICE_NAME}/aws4_request"
+    end
+
+    # Task 1: Create a Canonical Request For Signature Version 4
+    #   http://docs.aws.amazon.com/general/latest/gr/sigv4-create-canonical-request.html
+    def canonical_request
+      [
+        'POST',
+        '/',
+        '',
+        'content-type:application/x-amz-json-1.1',
+        "host:#{host}",
+        "user-agent:elasticity/#{Elasticity::VERSION}",
+        "x-amz-content-sha256:#{Digest::SHA256.hexdigest(payload)}",
+        "x-amz-date:#{@timestamp.strftime('%Y%m%dT%H%M%SZ')}",
+        "x-amz-target:ElasticMapReduce.#{@operation}",
+        '',
+        'content-type;host;user-agent;x-amz-content-sha256;x-amz-date;x-amz-target',
+        Digest::SHA256.hexdigest(payload)
+      ].join("\n")
+    end
+
+    # Task 2: Create a String to Sign for Signature Version 4
+    #   http://docs.aws.amazon.com/general/latest/gr/sigv4-create-string-to-sign.html
+    def string_to_sign
+      [
+        'AWS4-HMAC-SHA256',
+        @timestamp.strftime('%Y%m%dT%H%M%SZ'),
+        credential_scope,
+        Digest::SHA256.hexdigest(canonical_request)
+      ].join("\n")
+    end
+
+    # Task 3: Calculate the AWS Signature Version 4
+    #   http://docs.aws.amazon.com/general/latest/gr/sigv4-calculate-signature.html
+    def aws_v4_signature
+      date = OpenSSL::HMAC.digest('sha256', 'AWS4' + @secret_key, @timestamp.strftime('%Y%m%d'))
+      region = OpenSSL::HMAC.digest('sha256', date, @region)
+      service = OpenSSL::HMAC.digest('sha256', region, SERVICE_NAME)
+      signing_key = OpenSSL::HMAC.digest('sha256', service, 'aws4_request')
+
+      OpenSSL::HMAC.hexdigest('sha256', signing_key, string_to_sign)
     end
 
     def submit(ruby_params)
-      aws_params = AwsRequest.convert_ruby_to_aws(ruby_params)
-      signed_params = sign_params(aws_params)
+      if ruby_params.key?(:release_label)
+        @ruby_service_hash = ruby_params
+        @operation = ruby_params[:operation]
+      else
+        aws_params = AwsRequest.convert_ruby_to_aws(ruby_params)
+        signed_params = sign_params(aws_params)
+      end
+
       begin
-        RestClient.post("#@protocol://#@host", signed_params, :content_type => 'application/x-www-form-urlencoded; charset=utf-8')
+        if ruby_params.key?(:release_label)
+          RestClient.post("#@protocol://#@host", payload, headers)
+        else
+          RestClient.post("#@protocol://#@host", signed_params, :content_type => 'application/x-www-form-urlencoded; charset=utf-8')
+        end
       rescue RestClient::BadRequest => e
         raise ArgumentError, AwsRequest.parse_error_response(e.http_body)
       end
@@ -106,6 +191,29 @@ module Elasticity
         end
       end
       result
+    end
+
+    # With the advent of v4 signing, we can skip the complex translation from v2
+    # and ship the JSON over with nearly the same structure.
+    def self.convert_ruby_to_aws_v4(value, camelizeKey)
+      case value
+        when Array
+          return value.map{|v| convert_ruby_to_aws_v4(v, camelizeKey)}
+        when Hash
+          result = {}
+          value.each do |k,v|
+            if k != :configurations
+              key = camelizeKey ? camelize(k.to_s) : k.to_s
+              result[key] = convert_ruby_to_aws_v4(v, camelizeKey)
+            else
+              # For configuration options we want to keep property keys uncamelized.
+              result[camelize(k.to_s)] = convert_ruby_to_aws_v4(v, false)
+            end
+          end
+          return result
+        else
+          return value
+      end
     end
 
     # (Used from Rails' ActiveSupport)

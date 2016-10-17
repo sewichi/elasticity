@@ -26,7 +26,11 @@ module Elasticity
     end
 
     def to_aws_step(job_flow)
-      step = Elasticity::CustomJarStep.new('/home/hadoop/contrib/streaming/hadoop-streaming.jar')
+      if job_flow.ami_version.split('.').first.to_i >= 4
+        step = Elasticity::CustomJarStep.new('/usr/lib/hadoop-mapreduce/hadoop-streaming.jar')
+      else
+        step = Elasticity::CustomJarStep.new('/home/hadoop/contrib/streaming/hadoop-streaming.jar')
+      end
       step.name = @name
       step.action_on_failure = @action_on_failure
       step.arguments = @arguments + ['-input', @input_bucket, '-output', @output_bucket, '-mapper', @mapper, '-reducer', @reducer]

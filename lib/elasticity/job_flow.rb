@@ -155,7 +155,15 @@ module Elasticity
       preamble = @defaults
 
       preamble[:name] = @name unless @name.nil?
-      preamble[:ami_version] = @ami_version unless @ami_version.nil?
+
+      major_version = @ami_version.split('.').first.to_i if @ami_version
+      if major_version && major_version >= 4
+        preamble[:release_label] = "emr-#@ami_version"
+        preamble.delete(:ami_version)
+      else
+        preamble[:ami_version] = @ami_version unless @ami_version.nil?
+      end
+
       preamble[:visible_to_all_users] = @visible_to_all_users unless @visible_to_all_users.nil?
 
       preamble[:instances] ||= {}

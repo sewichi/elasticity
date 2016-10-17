@@ -26,6 +26,8 @@ require 'elasticity/hive_step'
 require 'elasticity/pig_step'
 require 'elasticity/streaming_step'
 
+require 'elasticity/version'
+
 module Elasticity
 
   class << self
