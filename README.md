@@ -113,6 +113,8 @@ jobflow.placement                         = 'us-east-1a'
 jobflow.instance_count                    = 2
 jobflow.master_instance_type              = 'm1.small'
 jobflow.slave_instance_type               = 'm1.small'
+jobflow.additional_master_security_groups = ['sg-1111', 'sg-2222']
+jobflow.additional_slave_security_groups  = ['sg-1111', 'sg-2222']
 ```
 
 ## 3 - Configure Instance Groups (optional)

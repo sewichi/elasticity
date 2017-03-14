@@ -23,6 +23,8 @@ module Elasticity
     attr_accessor :defaults
     attr_reader :access_key
     attr_reader :secret_key
+    attr_accessor :additional_master_security_groups
+    attr_accessor :additional_slave_security_groups
 
     def initialize(access=nil, secret=nil)
 
@@ -172,11 +174,18 @@ module Elasticity
       preamble[:instances][:instance_groups] = jobflow_instance_groups
 
       @ec2_key_name ||= preamble[:ec2_key_name]
+
       preamble[:instances].merge!(:ec2_key_name => @ec2_key_name) if @ec2_key_name
+      preamble[:instances].merge!(:additional_master_security_groups => @additional_master_security_groups) if @additional_master_security_groups
+      preamble[:instances].merge!(:additional_slave_security_groups => @additional_slave_security_groups) if @additional_slave_security_groups
+
       preamble[:instances][:placement] = {:availability_zone => @placement} if @placement
 
       preamble[:placement] = {:availability_zone => @placement} if @placement
-      preamble.merge!(:ec2_subnet_id => @ec2_subnet_id) if @ec2_subnet_id
+      if @ec2_subnet_id
+        preamble[:instances].merge!(:ec2_subnet_id => @ec2_subnet_id)
+        preamble[:instances].delete(:placement)
+      end
 
       preamble
     end
