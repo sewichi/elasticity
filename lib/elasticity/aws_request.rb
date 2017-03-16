@@ -111,7 +111,7 @@ module Elasticity
           RestClient.post("#@protocol://#@host", signed_params, :content_type => 'application/x-www-form-urlencoded; charset=utf-8')
         end
       rescue RestClient::BadRequest => e
-        raise ArgumentError, AwsRequest.parse_error_response(e.http_body)
+        raise ArgumentError, "AWS parsed error response: #{AwsRequest.parse_error_response(e.http_body)}\n\nAWS raw http response: #{e.http_body}\n\nParams:#{ruby_params}"
       end
     end
 
