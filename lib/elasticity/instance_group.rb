@@ -9,6 +9,7 @@ module Elasticity
     attr_accessor :role
     attr_accessor :ebs
     attr_accessor :bid_price
+    attr_accessor :name
 
     attr_reader :bid_price
     attr_reader :market
@@ -19,6 +20,7 @@ module Elasticity
       @market = 'ON_DEMAND'
       @role = 'CORE'
       @ebs = nil
+      @name = nil
     end
 
     def ebs=(ebs_opts = {})
@@ -100,6 +102,10 @@ module Elasticity
       @role = group_role
     end
 
+    def name=(group_name)
+      @name = group_name
+    end
+
     def set_spot_instances(bid_price)
       if bid_price < 0
         raise ArgumentError, "The bid price for spot instances should be greater than 0 (#{bid_price} requested)"
@@ -119,6 +125,7 @@ module Elasticity
         :instance_count => @count,
         :instance_type => @type,
         :instance_role => @role,
+        :name => @name || "#{@role}-#{object_id}"  # default to role-objectid to differentiate duplicates
       }.tap do |config|
         config.merge!(:ebs_configuration => @ebs) if @ebs
         config.merge!(:bid_price => @bid_price) if @market == 'SPOT'
