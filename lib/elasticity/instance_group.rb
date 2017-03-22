@@ -125,7 +125,7 @@ module Elasticity
         :instance_count => @count,
         :instance_type => @type,
         :instance_role => @role,
-        :name => @name || @role
+        :name => @name || "#{@role}-#{object_id}"  # default to role-objectid to differentiate duplicates
       }.tap do |config|
         config.merge!(:ebs_configuration => @ebs) if @ebs
         config.merge!(:bid_price => @bid_price) if @market == 'SPOT'
