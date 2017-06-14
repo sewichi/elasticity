@@ -8,6 +8,7 @@ module Elasticity
 
     attr_accessor :action_on_failure
     attr_accessor :ec2_key_name
+    attr_accessor :security_configuration
     attr_accessor :name
     attr_accessor :hadoop_version
     attr_accessor :instance_count
@@ -150,6 +151,7 @@ module Elasticity
       config[:steps] = jobflow_steps
       config[:log_uri] = @log_uri if @log_uri
       config[:bootstrap_actions] = @bootstrap_actions.map{|a| a.to_aws_bootstrap_action} unless @bootstrap_actions.empty?
+      config[:security_configuration] = @security_configuration if @security_configuration
       config
     end
 
