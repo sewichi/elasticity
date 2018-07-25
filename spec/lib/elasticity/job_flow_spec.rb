@@ -34,6 +34,17 @@ describe Elasticity::JobFlow do
     end
   end
 
+  describe '#security_configuration=' do
+    context 'when set' do
+      before do
+        subject.security_configuration = 'security configuration'
+      end
+      it 'security_configuration is a string' do
+        expect(subject.security_configuration).to eq('security configuration')
+      end
+    end
+  end
+
   describe '#instance_count=' do
 
     context 'when set to more than 1' do
