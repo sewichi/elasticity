@@ -17,6 +17,9 @@ require 'elasticity/job_flow_step'
 
 require 'elasticity/job_flow'
 require 'elasticity/instance_group'
+require 'elasticity/instance_fleet'
+require 'elasticity/instance_type_config'
+require 'elasticity/ebs_configuration'
 
 require 'elasticity/job_flow_status'
 require 'elasticity/job_flow_status_step'
