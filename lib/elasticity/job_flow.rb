@@ -37,8 +37,7 @@ module Elasticity
       @installed_steps = []
 
       @instance_groups = {}
-      set_master_instance_group(Elasticity::InstanceGroup.new)
-      set_core_instance_group(Elasticity::InstanceGroup.new)
+      @instance_fleets = {}
       @instance_count = 2
       @master_instance_type = 'm1.small'
       @slave_instance_type = 'm1.small'
@@ -77,19 +76,46 @@ module Elasticity
       @bootstrap_actions << bootstrap_action
     end
 
+    def check_instances
+      if !@instance_groups.empty? and !@instance_fleets.empty?
+        raise ArgumentError, 'Instance groups and instance fleets are mutually exclusive!'
+      end
+    end
+
     def set_master_instance_group(instance_group)
       instance_group.role = 'MASTER'
       @instance_groups[:master] = instance_group
+      check_instances
     end
 
     def set_core_instance_group(instance_group)
       instance_group.role = 'CORE'
       @instance_groups[:core] = instance_group
+      check_instances
     end
 
     def set_task_instance_group(instance_group)
       instance_group.role = 'TASK'
       @instance_groups[:task] = instance_group
+      check_instances
+    end
+
+    def set_master_instance_fleet(instance_fleet)
+      instance_fleet.role = 'MASTER'
+      @instance_fleets[:master] = instance_fleet
+      check_instances
+    end
+
+    def set_core_instance_fleet(instance_fleet)
+      instance_fleet.role = 'CORE'
+      @instance_fleets[:core] = instance_fleet
+      check_instances
+    end
+
+    def set_task_instance_fleet(instance_fleet)
+      instance_fleet.role = 'TASK'
+      @instance_fleets[:task] = instance_fleet
+      check_instances
     end
 
     def add_step(jobflow_step)
@@ -173,7 +199,8 @@ module Elasticity
       preamble[:instances] ||= {}
       preamble[:instances][:keep_job_flow_alive_when_no_steps] = @keep_job_flow_alive_when_no_steps unless @keep_job_flow_alive_when_no_steps.nil?
       preamble[:instances][:hadoop_version] = @hadoop_version unless @hadoop_version.nil?
-      preamble[:instances][:instance_groups] = jobflow_instance_groups
+      preamble[:instances][:instance_groups] = jobflow_instance_groups unless @instance_groups.empty?
+      preamble[:instances][:instance_fleets] = jobflow_instance_fleets unless @instance_fleets.empty?
 
       @ec2_key_name ||= preamble[:ec2_key_name]
 
@@ -207,6 +234,11 @@ module Elasticity
     def jobflow_instance_groups
       groups = [:master, :core, :task].map{|role| @instance_groups[role]}.compact
       groups.map(&:to_aws_instance_config)
+    end
+
+    def jobflow_instance_fleets
+      fleets = [:master, :core, :task].map{|role| @instance_fleets[role]}.compact
+      fleets.map(&:to_aws_instance_config)
     end
 
   end
