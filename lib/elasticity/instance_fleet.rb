@@ -62,7 +62,7 @@ module Elasticity
     end
 
     def spot_provisioning_timeout_minutes=(timeout_minutes)
-      if !(MIN_PROVISIONING_TIMEOUT_MINUTES..MAX_PROVISIONING_TIMEOUT_MINUTES).include?(timeout_minutes)
+      if !timeout_minutes.between?(MIN_PROVISIONING_TIMEOUT_MINUTES, MAX_PROVISIONING_TIMEOUT_MINUTES)
         raise ArgumentError, 'Timeout minutes must be in ' \
           "[#{MIN_PROVISIONING_TIMEOUT_MINUTES}, #{MAX_PROVISIONING_TIMEOUT_MINUTES}] " \
           "(#{timeout_minutes} was requested)."
