@@ -2,7 +2,7 @@ module Elasticity
 
   class InstanceGroup
 
-    ROLES = %w(MASTER CORE TASK)
+    ROLES = Elasticity::InstanceConstraints::VALID_INSTANCE_COLLECTION_ROLES
 
     attr_accessor :count
     attr_accessor :type
