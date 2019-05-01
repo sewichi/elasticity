@@ -18,6 +18,7 @@ module Elasticity
     attr_accessor :ami_version
     attr_accessor :keep_job_flow_alive_when_no_steps
     attr_accessor :ec2_subnet_id
+    attr_accessor :ec2_subnet_ids
     attr_accessor :placement
     attr_accessor :visible_to_all_users
     attr_accessor :jobflow_id
@@ -213,6 +214,9 @@ module Elasticity
       preamble[:placement] = {:availability_zone => @placement} if @placement
       if @ec2_subnet_id
         preamble[:instances].merge!(:ec2_subnet_id => @ec2_subnet_id)
+        preamble[:instances].delete(:placement)
+      elsif @ec2_subnet_ids
+        preamble[:instances].merge!(:ec2_subnet_ids => @ec2_subnet_ids)
         preamble[:instances].delete(:placement)
       end
 
