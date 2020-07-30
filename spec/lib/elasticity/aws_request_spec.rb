@@ -25,27 +25,31 @@ describe Elasticity::AwsRequest do
 
       context 'when the proper environment variables are set' do
 
-        context 'when access and secret key are not provided' do
+        context 'when access key, secret key, and session token are not provided' do
           let(:default_values) { Elasticity::AwsRequest.new }
           before do
             ENV.stub(:[]).with('AWS_ACCESS_KEY_ID').and_return('ENV_ACCESS')
             ENV.stub(:[]).with('AWS_SECRET_ACCESS_KEY').and_return('ENV_SECRET')
+            ENV.stub(:[]).with('AWS_SESSION_TOKEN').and_return('ENV_SESSION')
           end
           it 'should set access and secret keys' do
             default_values.access_key.should == 'ENV_ACCESS'
             default_values.secret_key.should == 'ENV_SECRET'
+            default_values.session_token.should == 'ENV_SESSION'
           end
         end
 
-        context 'when access and secret key are nil' do
+        context 'when access key, secret key, and session token are nil' do
           let(:nil_values) { Elasticity::AwsRequest.new(nil, nil) }
           before do
             ENV.stub(:[]).with('AWS_ACCESS_KEY_ID').and_return('ENV_ACCESS')
             ENV.stub(:[]).with('AWS_SECRET_ACCESS_KEY').and_return('ENV_SECRET')
+            ENV.stub(:[]).with('AWS_SESSION_TOKEN').and_return('ENV_SESSION')
           end
           it 'should set access and secret keys' do
             nil_values.access_key.should == 'ENV_ACCESS'
             nil_values.secret_key.should == 'ENV_SECRET'
+            nil_values.session_token.should == 'ENV_SESSION'
           end
         end
 
@@ -127,13 +131,6 @@ describe Elasticity::AwsRequest do
 
   end
 
-  describe '#sign_params' do
-    it 'should sign according to AWS rules' do
-      signed_params = subject.send(:sign_params, {})
-      signed_params.should == 'AWSAccessKeyId=access&SignatureMethod=HmacSHA256&SignatureVersion=2&Timestamp=2011-04-10T18%3A44%3A56.000Z&Signature=t%2BccC38VxCKyk2ROTKo9vnECsntKoU0RBAFklHWP5bE%3D'
-    end
-  end
-
   describe '#submit' do
 
     let(:request) do
@@ -145,10 +142,10 @@ describe Elasticity::AwsRequest do
 
     it 'should POST a properly assembled request' do
       ruby_params = {}
-      aws_params = {}
       Elasticity::AwsRequest.should_receive(:convert_ruby_to_aws).with(ruby_params).and_return(ruby_params)
-      request.should_receive(:sign_params).with(aws_params).and_return('SIGNED_PARAMS')
-      RestClient.should_receive(:post).with('PROTOCOL://HOSTNAME', 'SIGNED_PARAMS', :content_type => 'application/x-www-form-urlencoded; charset=utf-8')
+      request.should_receive(:headers).and_return('HEADERS')
+      request.should_receive(:payload).and_return('PAYLOAD')
+      RestClient.should_receive(:post).with('PROTOCOL://HOSTNAME', 'PAYLOAD', 'HEADERS')
       request.submit(ruby_params)
     end
 

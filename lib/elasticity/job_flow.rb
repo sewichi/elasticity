@@ -25,10 +25,11 @@ module Elasticity
     attr_accessor :defaults
     attr_reader :access_key
     attr_reader :secret_key
+    attr_reader :session_token
     attr_accessor :additional_master_security_groups
     attr_accessor :additional_slave_security_groups
 
-    def initialize(access=nil, secret=nil)
+    def initialize(access=nil, secret=nil, session_token=nil)
 
       @access_key = access
       @secret_key = secret
@@ -45,12 +46,14 @@ module Elasticity
 
       @access_key = access
       @secret_key = secret
+      @session_token = session_token
     end
 
-    def self.from_jobflow_id(access, secret, jobflow_id, region = 'us-east-1')
-      JobFlow.new(access, secret).tap do |j|
+    def self.from_jobflow_id(access, secret, jobflow_id, region = 'us-east-1', options = {})
+      JobFlow.new(access, secret, session_token).tap do |j|
         j.instance_variable_set(:@region, region)
         j.instance_variable_set(:@jobflow_id, jobflow_id)
+        j.instance_variable_set(:@session_token, options[:session_token])
       end
     end
 
@@ -166,7 +169,7 @@ module Elasticity
 
     def emr
       @region ||= (@placement && @placement.match(/(\w+-\w+-\d+)/)[0]) || 'us-east-1'
-      @emr ||= Elasticity::EMR.new(@access_key, @secret_key, :region => @region)
+      @emr ||= Elasticity::EMR.new(@access_key, @secret_key, :region => @region, :session_token => @session_token)
     end
 
     def is_jobflow_running?

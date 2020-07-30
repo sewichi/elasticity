@@ -2,6 +2,7 @@ require 'base64'
 require 'set'
 require 'time'
 
+require 'aws-sdk-core'
 require 'rest_client'
 require 'nokogiri'
 require 'fog'
