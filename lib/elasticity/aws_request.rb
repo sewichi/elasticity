@@ -9,6 +9,7 @@ module Elasticity
 
     attr_reader :access_key
     attr_reader :secret_key
+    attr_reader :session_token
     attr_reader :host
     attr_reader :protocol
 
@@ -18,6 +19,7 @@ module Elasticity
     def initialize(access=nil, secret=nil, options={})
       @access_key = get_access_key(access)
       @secret_key = get_secret_key(secret)
+      @session_token = get_session_token(options[:session_token])
       @region = {:region => 'us-east-1'}.merge(options)[:region]
       @host = "elasticmapreduce.#@region.amazonaws.com"
       @protocol = {:secure => true}.merge(options)[:secure] ? 'https' : 'http'
@@ -25,20 +27,18 @@ module Elasticity
     end
 
     def headers
-      headers = {
-        'Authorization' => "AWS4-HMAC-SHA256 Credential=#{@access_key}/#{credential_scope}, SignedHeaders=content-type;host;user-agent;x-amz-content-sha256;x-amz-date;x-amz-target, Signature=#{aws_v4_signature}",
-        'Content-Type' => 'application/x-amz-json-1.1',
-        'Host' => host,
-        'User-Agent' => "elasticity/#{Elasticity::VERSION}",
-        'X-Amz-Content-SHA256' => Digest::SHA256.hexdigest(payload),
-        'X-Amz-Date' => @timestamp.strftime('%Y%m%dT%H%M%SZ'),
-        'X-Amz-Target' => "ElasticMapReduce.#{@operation}",
-      }
-      headers
-    end
-
-    def url
-      "https://#{host}"
+      signer = Aws::Sigv4::Signer.new(
+        service: 'elasticmapreduce',
+        region: @region,
+        credentials: Aws::Credentials.new(@access_key, @secret_key, @session_token)
+      )
+      signature = signer.sign_request({
+        http_method: 'POST',
+        url: '/',
+        headers: headers_to_sign(),
+        body: payload
+      })
+      headers_to_sign().merge(signature.headers)
     end
 
     def payload
@@ -50,68 +50,28 @@ module Elasticity
       "elasticmapreduce.#{@region}.amazonaws.com"
     end
 
-    def credential_scope
-      "#{@timestamp.strftime('%Y%m%d')}/#{@region}/#{SERVICE_NAME}/aws4_request"
-    end
-
-    # Task 1: Create a Canonical Request For Signature Version 4
-    #   http://docs.aws.amazon.com/general/latest/gr/sigv4-create-canonical-request.html
-    def canonical_request
-      [
-        'POST',
-        '/',
-        '',
-        'content-type:application/x-amz-json-1.1',
-        "host:#{host}",
-        "user-agent:elasticity/#{Elasticity::VERSION}",
-        "x-amz-content-sha256:#{Digest::SHA256.hexdigest(payload)}",
-        "x-amz-date:#{@timestamp.strftime('%Y%m%dT%H%M%SZ')}",
-        "x-amz-target:ElasticMapReduce.#{@operation}",
-        '',
-        'content-type;host;user-agent;x-amz-content-sha256;x-amz-date;x-amz-target',
-        Digest::SHA256.hexdigest(payload)
-      ].join("\n")
-    end
-
-    # Task 2: Create a String to Sign for Signature Version 4
-    #   http://docs.aws.amazon.com/general/latest/gr/sigv4-create-string-to-sign.html
-    def string_to_sign
-      [
-        'AWS4-HMAC-SHA256',
-        @timestamp.strftime('%Y%m%dT%H%M%SZ'),
-        credential_scope,
-        Digest::SHA256.hexdigest(canonical_request)
-      ].join("\n")
-    end
-
-    # Task 3: Calculate the AWS Signature Version 4
-    #   http://docs.aws.amazon.com/general/latest/gr/sigv4-calculate-signature.html
-    def aws_v4_signature
-      date = OpenSSL::HMAC.digest('sha256', 'AWS4' + @secret_key, @timestamp.strftime('%Y%m%d'))
-      region = OpenSSL::HMAC.digest('sha256', date, @region)
-      service = OpenSSL::HMAC.digest('sha256', region, SERVICE_NAME)
-      signing_key = OpenSSL::HMAC.digest('sha256', service, 'aws4_request')
-
-      OpenSSL::HMAC.hexdigest('sha256', signing_key, string_to_sign)
+    def headers_to_sign
+      headers = {
+        'content-type' => 'application/x-amz-json-1.1',
+        'host' => host,
+        'user-agent' => "elasticity/#{Elasticity::VERSION}",
+        'x-amz-date' => @timestamp.strftime('%Y%m%dT%H%M%SZ'),
+        'x-amz-target' => "ElasticMapReduce.#{@operation}",
+      }
+      if !@session_token.nil?
+        headers['x-amz-security-token'] = @session_token
+      end
+      headers
     end
 
     def submit(ruby_params)
-      if ruby_params.key?(:release_label)
-        @ruby_service_hash = ruby_params
-        @operation = ruby_params[:operation]
-      else
-        aws_params = AwsRequest.convert_ruby_to_aws(ruby_params)
-        signed_params = sign_params(aws_params)
-      end
-
+      @operation = ruby_params[:operation]
+      @ruby_service_hash = ruby_params
       begin
-        if ruby_params.key?(:release_label)
-          RestClient.post("#@protocol://#@host", payload, headers)
-        else
-          RestClient.post("#@protocol://#@host", signed_params, :content_type => 'application/x-www-form-urlencoded; charset=utf-8')
-        end
+        RestClient.post("#@protocol://#@host", payload, headers)
       rescue RestClient::BadRequest => e
-        raise ArgumentError, "AWS parsed error response: #{AwsRequest.parse_error_response(e.http_body)}\n\nAWS raw http response: #{e.http_body}\n\nParams:#{ruby_params}"
+        raise ArgumentError, "AWS parsed error response: #{AwsRequest.parse_error_response(e.http_body)}\n\n" +
+                             "AWS raw http response: #{e.http_body}\n\nParams:#{ruby_params}"
       end
     end
 
@@ -138,30 +98,10 @@ module Elasticity
       raise MissingKeyError, 'Please provide a secret key or set AWS_SECRET_ACCESS_KEY.'
     end
 
-    # (Used from RightScale's right_aws gem.)
-    # EC2, SQS, SDB and EMR requests must be signed by this guy.
-    # See: http://docs.amazonwebservices.com/AmazonSimpleDB/2007-11-07/DeveloperGuide/index.html?REST_RESTAuth.html
-    #      http://developer.amazonwebservices.com/connect/entry.jspa?externalID=1928
-    def sign_params(service_hash)
-      service_hash.merge!({
-        'AWSAccessKeyId' => @access_key,
-        'Timestamp' => Time.now.utc.strftime('%Y-%m-%dT%H:%M:%S.000Z'),
-        'SignatureVersion' => '2',
-        'SignatureMethod' => 'HmacSHA256'
-      })
-      canonical_string = service_hash.keys.sort.map do |key|
-        "#{AwsRequest.aws_escape(key)}=#{AwsRequest.aws_escape(service_hash[key])}"
-      end.join('&')
-      string_to_sign = "POST\n#{@host.downcase}\n/\n#{canonical_string}"
-      signature = AwsRequest.aws_escape(Base64.encode64(OpenSSL::HMAC.digest("sha256", @secret_key, string_to_sign)).strip)
-      "#{canonical_string}&Signature=#{signature}"
-    end
-
-    # (Used from RightScale's right_aws gem)
-    # Escape a string according to Amazon's rules.
-    # See: http://docs.amazonwebservices.com/AmazonSimpleDB/2007-11-07/DeveloperGuide/index.html?REST_RESTAuth.html
-    def self.aws_escape(param)
-      ERB::Util.url_encode(param)
+    def get_session_token(session_token)
+      return session_token if session_token
+      return ENV['AWS_SESSION_TOKEN'] if ENV['AWS_SESSION_TOKEN']
+      return nil # Session token is optional, and is nil unless working with temporary role IAM credentials.
     end
 
     # Since we use the same structure as AWS, we can generate AWS param names
