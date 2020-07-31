@@ -52,14 +52,14 @@ module Elasticity
 
     def headers_to_sign
       headers = {
-        'Content-Type' => 'application/x-amz-json-1.1',
-        'Host' => host,
-        'User-Agent' => "elasticity/#{Elasticity::VERSION}",
-        'X-Amz-Date' => @timestamp.strftime('%Y%m%dT%H%M%SZ'),
-        'X-Amz-Target' => "ElasticMapReduce.#{@operation}",
+        'content-type' => 'application/x-amz-json-1.1',
+        'host' => host,
+        'user-agent' => "elasticity/#{Elasticity::VERSION}",
+        'x-amz-date' => @timestamp.strftime('%Y%m%dT%H%M%SZ'),
+        'x-amz-target' => "ElasticMapReduce.#{@operation}",
       }
       if !@session_token.nil?
-        headers['X-Amz-Security-Token'] = @session_token
+        headers['x-amz-security-token'] = @session_token
       end
       headers
     end
