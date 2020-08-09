@@ -2,10 +2,14 @@ module Elasticity
 
   class EMR
 
-    attr_reader :aws_request
-
     def initialize(aws_access_key_id, aws_secret_access_key, options = {})
-      @aws_request = Elasticity::AwsRequest.new(aws_access_key_id, aws_secret_access_key, options)
+      @aws_access_key_id = aws_access_key_id
+      @aws_secret_access_key = aws_secret_access_key
+      @options = options
+    end
+
+    def aws_request
+      Elasticity::AwsRequest.new(@aws_access_key_id, @aws_secret_access_key, @options)
     end
 
     # Describe a specific jobflow.
@@ -15,7 +19,7 @@ module Elasticity
     # Raises ArgumentError if the specified jobflow does not exist.
     def describe_jobflow(jobflow_id)
       warn "DescribeJobFlows is deprecated. caller = #{caller.join("\n")}"
-      aws_result = @aws_request.submit({
+      aws_result = aws_request.submit({
         :operation => 'DescribeJobFlows',
         :job_flow_ids => [jobflow_id]
       })
@@ -33,7 +37,7 @@ module Elasticity
     #   describe_jobflows(:CreatedBefore => "2011-10-04")
     def describe_jobflows(params = {})
       warn "DescribeJobFlows is deprecated. caller = #{caller.join("\n")}"
-      aws_result = @aws_request.submit(
+      aws_result = aws_request.submit(
         params.merge({:operation => 'DescribeJobFlows'})
       )
       xml_doc = Nokogiri::XML(aws_result)
@@ -66,7 +70,7 @@ module Elasticity
         :job_flow_id => jobflow_id,
         :instance_groups => instance_group_configs
       }
-      aws_result = @aws_request.submit(params)
+      aws_result = aws_request.submit(params)
       xml_doc = Nokogiri::XML(aws_result)
       xml_doc.remove_namespaces!
       instance_group_ids = []
@@ -101,7 +105,7 @@ module Elasticity
         :operation => 'AddJobFlowSteps',
         :job_flow_id => jobflow_id
       }.merge!(steps_config)
-      aws_result = @aws_request.submit(params)
+      aws_result = aws_request.submit(params)
       yield aws_result if block_given?
     end
 
@@ -118,7 +122,7 @@ module Elasticity
         :operation => 'ModifyInstanceGroups',
         :instance_groups => instance_group_config.map { |k, v| {:instance_group_id => k, :instance_count => v} }
       }
-      aws_result = @aws_request.submit(params)
+      aws_result = aws_request.submit(params)
       yield aws_result if block_given?
     end
 
@@ -181,7 +185,7 @@ module Elasticity
       params = {
         :operation => 'RunJobFlow',
       }.merge!(job_flow_config)
-      aws_result = @aws_request.submit(params)
+      aws_result = aws_request.submit(params)
       yield aws_result if block_given?
       if job_flow_config.key?(:release_label)
         JSON.parse(aws_result)['JobFlowId']
@@ -206,7 +210,7 @@ module Elasticity
         :termination_protected => protection_enabled,
         :job_flow_ids => jobflow_ids
       }
-      aws_result = @aws_request.submit(params)
+      aws_result = aws_request.submit(params)
       yield aws_result if block_given?
     end
 
@@ -219,7 +223,7 @@ module Elasticity
         :operation => 'TerminateJobFlows',
         :job_flow_ids => [jobflow_id]
       }
-      aws_result = @aws_request.submit(params)
+      aws_result = aws_request.submit(params)
       yield aws_result if block_given?
     end
 
@@ -227,15 +231,14 @@ module Elasticity
     # Use this if you want to perform an operation that hasn't yet been wrapped
     # by Elasticity or you just want to see the response XML for yourself :)
     def direct(params)
-      @aws_request.submit(params)
+      aws_request.submit(params)
     end
 
     def ==(other)
       return false unless other.is_a? EMR
-      return false unless @aws_request == other.aws_request
+      return false unless aws_request == other.aws_request
       true
     end
 
   end
-
 end

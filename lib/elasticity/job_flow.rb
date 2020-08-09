@@ -50,7 +50,7 @@ module Elasticity
     end
 
     def self.from_jobflow_id(access, secret, jobflow_id, region = 'us-east-1', options = {})
-      JobFlow.new(access, secret, session_token).tap do |j|
+      JobFlow.new(access, secret, options[:session_token]).tap do |j|
         j.instance_variable_set(:@region, region)
         j.instance_variable_set(:@jobflow_id, jobflow_id)
         j.instance_variable_set(:@session_token, options[:session_token])
