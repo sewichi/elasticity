@@ -15,7 +15,7 @@ Gem::Specification.new do |s|
   s.add_dependency('nokogiri', '~> 1.7.1')
   s.add_dependency('fog', '~> 1.25.0')
   s.add_dependency('fog-core', '~> 1.25.0')
-  s.add_dependency('aws-sdk-core', '~> 2.0')
+  s.add_dependency('aws-sdk', '>= 2')
 
   s.add_development_dependency('rake', '~> 10.1.0')
   s.add_development_dependency('rspec', '~> 2.12.0')
